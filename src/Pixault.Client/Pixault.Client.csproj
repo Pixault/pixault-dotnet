@@ -5,13 +5,30 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Pixault.Client</RootNamespace>
-    <Title>Pixault.Client</Title>
-    <Authors>Endpoint Systems</Authors>
-    <Description>Client SDK for the Pixault image processing CDN and API. Provides fluent URL builder, upload client, and ASP.NET Core DI extensions.</Description>
-    <PackageId>Pixault.Client</PackageId>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <InternalsVisibleTo>Pixault.Tests</InternalsVisibleTo>
   </PropertyGroup>
+
+  <PropertyGroup Label="NuGet">
+    <PackageId>Pixault.Client</PackageId>
+    <Title>Pixault.Client</Title>
+    <Authors>Endpoint Systems</Authors>
+    <Company>Endpoint Systems</Company>
+    <Copyright>Copyright (c) Endpoint Systems. All rights reserved.</Copyright>
+    <Description>Client SDK for the Pixault image processing CDN and API. Provides fluent URL builder, upload client, and ASP.NET Core DI extensions.</Description>
+    <PackageTags>pixault;image;cdn;upload;transform;api</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://pixault.io</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EndpointSystems/pixault-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup Label="Package assets">
+    <None Include="../../icon.png" Pack="true" PackagePath="" />
+    <None Include="../../README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
