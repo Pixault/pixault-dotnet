@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Pixault.Client</RootNamespace>
+    <Title>Pixault.Client</Title>
+    <Authors>Endpoint Systems</Authors>
+    <Description>Client SDK for the Pixault image processing CDN and API. Provides fluent URL builder, upload client, and ASP.NET Core DI extensions.</Description>
+    <PackageId>Pixault.Client</PackageId>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <InternalsVisibleTo>Pixault.Tests</InternalsVisibleTo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+  </ItemGroup>
+
+</Project>
