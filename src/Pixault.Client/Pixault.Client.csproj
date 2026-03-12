@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Pixault.Client</RootNamespace>
+    <Version>1.1.0</Version>
     <InternalsVisibleTo>Pixault.Tests</InternalsVisibleTo>
   </PropertyGroup>
 
