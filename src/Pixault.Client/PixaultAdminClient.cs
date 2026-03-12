@@ -105,6 +105,41 @@ public sealed class PixaultAdminClient
         return await response.Content.ReadFromJsonAsync<ImageMetadataDto>(ct);
     }
 
+    // ── EPS Operations ─────────────────────────────────────────────
+
+    public async Task<List<DerivedAssetDto>> ListDerivedAssetsAsync(string imageId, string? project = null, CancellationToken ct = default)
+    {
+        var p = project ?? Project;
+        return await _http.GetFromJsonAsync<List<DerivedAssetDto>>($"/api/{p}/{imageId}/derived", ct) ?? [];
+    }
+
+    public async Task<EpsProcessingStatusDto?> GetEpsProcessingStatusAsync(string imageId, string? project = null, CancellationToken ct = default)
+    {
+        var p = project ?? Project;
+        try
+        {
+            return await _http.GetFromJsonAsync<EpsProcessingStatusDto>($"/api/{p}/{imageId}/processing-status", ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public async Task SplitEpsDesignsAsync(string imageId, string? project = null, CancellationToken ct = default)
+    {
+        var p = project ?? Project;
+        var response = await _http.PostAsync($"/api/{p}/{imageId}/split", null, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task ExtractEpsSvgAsync(string imageId, string? project = null, CancellationToken ct = default)
+    {
+        var p = project ?? Project;
+        var response = await _http.PostAsync($"/api/{p}/{imageId}/extract-svg", null, ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     // ── Named Transforms ─────────────────────────────────────────
 
     public async Task<List<NamedTransformDto>> ListTransformsAsync(string? project = null, CancellationToken ct = default)
@@ -303,4 +338,29 @@ public sealed class ProjectPluginDto
     public int PriceCentsPerInvocation { get; set; }
     public string UrlPrefix { get; set; } = "";
     public bool IsActivated { get; set; }
+}
+
+public sealed class DerivedAssetDto
+{
+    public string ImageId { get; set; } = "";
+    public string? DerivationType { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public long SizeBytes { get; set; }
+    public string ContentType { get; set; } = "";
+    public DateTimeOffset UploadedAt { get; set; }
+}
+
+public sealed class EpsProcessingStatusDto
+{
+    public Guid Id { get; set; }
+    public string Source { get; set; } = "";
+    public string Status { get; set; } = "";
+    public int TotalAssets { get; set; }
+    public int ProcessedAssets { get; set; }
+    public int SucceededAssets { get; set; }
+    public int FailedAssets { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
 }
