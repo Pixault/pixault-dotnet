@@ -107,7 +107,7 @@ public sealed class PixaultAdminClient
 
     // ── EPS Operations ─────────────────────────────────────────────
 
-    public async Task<List<DerivedAssetDto>> ListDerivedAssetsAsync(string imageId, string? project = null, CancellationToken ct = default)
+    public async Task<List<DerivedAssetDto>> GetDerivedAssetsAsync(string imageId, string? project = null, CancellationToken ct = default)
     {
         var p = project ?? Project;
         return await _http.GetFromJsonAsync<List<DerivedAssetDto>>($"/api/{p}/{imageId}/derived", ct) ?? [];
@@ -240,6 +240,11 @@ public sealed class ImageMetadataDto
     public double? LocationLongitude { get; set; }
     public string? LocationName { get; set; }
     public Dictionary<string, string>? Tags { get; set; }
+
+    // EPS fields
+    public bool IsEps { get; set; }
+    public string? SourceAssetId { get; set; }
+    public string? DerivationType { get; set; }
 
     // Video fields
     public bool IsVideo { get; set; }
