@@ -56,4 +56,10 @@ public sealed class PixaultUploadClient
     }
 }
 
-public sealed record UploadResponse(string ImageId, string Url);
+public sealed class UploadResponse
+{
+    public string ImageId { get; set; } = "";
+    public string Url { get; set; } = "";
+    public bool IsEps { get; set; }
+    public Guid? ProcessingJobId { get; set; }
+}

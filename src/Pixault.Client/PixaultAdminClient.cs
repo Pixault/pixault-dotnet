@@ -105,7 +105,7 @@ public sealed class PixaultAdminClient
         return await response.Content.ReadFromJsonAsync<ImageMetadataDto>(ct);
     }
 
-    // ── EPS Operations ─────────────────────────────────────────────
+    // ── EPS ──────────────────────────────────────────────────────
 
     public async Task<List<DerivedAssetDto>> GetDerivedAssetsAsync(string imageId, string? project = null, CancellationToken ct = default)
     {
@@ -241,16 +241,16 @@ public sealed class ImageMetadataDto
     public string? LocationName { get; set; }
     public Dictionary<string, string>? Tags { get; set; }
 
-    // EPS fields
-    public bool IsEps { get; set; }
-    public string? SourceAssetId { get; set; }
-    public string? DerivationType { get; set; }
-
     // Video fields
     public bool IsVideo { get; set; }
     public double? Duration { get; set; }
     public bool? HasAudio { get; set; }
     public string? ThumbnailId { get; set; }
+
+    // EPS fields
+    public bool IsEps { get; set; }
+    public string? SourceAssetId { get; set; }
+    public string? DerivationType { get; set; }
 
     public string FormattedSize => SizeBytes switch
     {
@@ -260,6 +260,7 @@ public sealed class ImageMetadataDto
     };
 
     public bool IsSvg => ContentType == "image/svg+xml";
+    public bool IsEpsContentType => ContentType == "application/postscript";
 
     public string FormattedDuration => Duration switch
     {
