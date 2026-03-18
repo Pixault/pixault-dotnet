@@ -176,6 +176,33 @@ public sealed class PixaultAdminClient
         response.EnsureSuccessStatusCode();
     }
 
+    // ── Watermarks ─────────────────────────────────────────────────
+
+    public async Task<List<WatermarkDto>> ListWatermarksAsync(string? project = null, CancellationToken ct = default)
+    {
+        var p = project ?? Project;
+        return await _http.GetFromJsonAsync<List<WatermarkDto>>($"/api/{p}/watermarks", ct) ?? [];
+    }
+
+    public async Task<WatermarkDto?> UploadWatermarkAsync(
+        string watermarkId, Stream imageStream, string contentType = "image/png",
+        string? project = null, CancellationToken ct = default)
+    {
+        var p = project ?? Project;
+        using var content = new StreamContent(imageStream);
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        var response = await _http.PutAsync($"/api/{p}/watermarks/{watermarkId}", content, ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<WatermarkDto>(ct);
+    }
+
+    public async Task DeleteWatermarkAsync(string watermarkId, string? project = null, CancellationToken ct = default)
+    {
+        var p = project ?? Project;
+        var response = await _http.DeleteAsync($"/api/{p}/watermarks/{watermarkId}", ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     // ── Plugins ───────────────────────────────────────────────────
 
     public async Task<List<PluginDto>> GetAllPluginsAsync(CancellationToken ct = default)
@@ -319,6 +346,14 @@ public sealed class NamedTransformSave
     public string? WatermarkPosition { get; set; }
     public int? WatermarkOpacity { get; set; }
     public HashSet<string>? LockedParameters { get; set; }
+}
+
+public sealed class WatermarkDto
+{
+    public string Id { get; set; } = "";
+    public long SizeBytes { get; set; }
+    public string ContentType { get; set; } = "image/png";
+    public DateTimeOffset? UpdatedAt { get; set; }
 }
 
 public sealed class PluginDto
