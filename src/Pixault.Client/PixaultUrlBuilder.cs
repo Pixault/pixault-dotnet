@@ -110,5 +110,65 @@ public sealed class PixaultUrlBuilder
         return $"{_baseUrl}/{_project}/{_imageId}/{string.Join(",", allParams)}.{_format}";
     }
 
+    /// <summary>
+    /// Generates a single <c>&lt;img&gt;</c> tag with <c>srcset</c> using auto-format negotiation.
+    /// The browser picks the best width; the CDN picks the best format via <c>Vary: Accept</c>.
+    /// </summary>
+    public string ToImgTag(string alt, int[]? widths = null, string sizes = "100vw",
+        string loading = "lazy", string? cssClass = null)
+    {
+        widths ??= [400, 800, 1200];
+        var maxWidth = widths.Max();
+        var transformParams = BuildTransformParams();
+
+        var srcset = string.Join(", ",
+            widths.OrderBy(w => w).Select(w =>
+                $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{w}.auto {w}w"));
+        var src = $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{maxWidth}.auto";
+        var cls = cssClass is not null ? $" class=\"{Encode(cssClass)}\"" : "";
+
+        return $"<img src=\"{src}\" srcset=\"{srcset}\" sizes=\"{Encode(sizes)}\" alt=\"{Encode(alt)}\" width=\"{maxWidth}\" loading=\"{loading}\" decoding=\"async\"{cls}>";
+    }
+
+    /// <summary>
+    /// Generates a <c>&lt;picture&gt;</c> element with AVIF and WebP <c>&lt;source&gt;</c> elements
+    /// and a JPEG fallback <c>&lt;img&gt;</c>. Provides both format negotiation and responsive sizing.
+    /// </summary>
+    public string ToPictureTag(string alt, int[]? widths = null, string sizes = "100vw",
+        string loading = "lazy", string? cssClass = null)
+    {
+        widths ??= [400, 800, 1200];
+        var maxWidth = widths.Max();
+        var transformParams = BuildTransformParams();
+        var cls = cssClass is not null ? $" class=\"{Encode(cssClass)}\"" : "";
+        var encodedSizes = Encode(sizes);
+        var encodedAlt = Encode(alt);
+
+        var avifSrcset = string.Join(", ",
+            widths.OrderBy(w => w).Select(w =>
+                $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{w}.avif {w}w"));
+        var webpSrcset = string.Join(", ",
+            widths.OrderBy(w => w).Select(w =>
+                $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{w}.webp {w}w"));
+        var fallback = $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{maxWidth}.jpg";
+
+        return $"<picture>" +
+            $"<source srcset=\"{avifSrcset}\" type=\"image/avif\" sizes=\"{encodedSizes}\">" +
+            $"<source srcset=\"{webpSrcset}\" type=\"image/webp\" sizes=\"{encodedSizes}\">" +
+            $"<img src=\"{fallback}\" alt=\"{encodedAlt}\" width=\"{maxWidth}\" loading=\"{loading}\" decoding=\"async\"{cls}>" +
+            $"</picture>";
+    }
+
+    private string BuildTransformParams()
+    {
+        var parts = new List<string>();
+        if (_transform is not null) parts.Add($"t_{_transform}");
+        parts.AddRange(_params);
+        return parts.Count > 0 ? string.Join(",", parts) + "," : "";
+    }
+
+    private static string Encode(string value) =>
+        System.Net.WebUtility.HtmlEncode(value);
+
     public override string ToString() => Build();
 }
