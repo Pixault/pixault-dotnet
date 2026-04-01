@@ -41,6 +41,20 @@ var url = ImageService.For("my-project", "image-id")
     .Build();
 ```
 
+### Generate SEO embed tags
+
+```csharp
+// Single <img> with auto-format negotiation and srcset
+var imgTag = images.For("tattoo", "img_01JKABC")
+    .Quality(85)
+    .ToImgTag(alt: "Sunset tattoo", widths: [400, 800, 1200], sizes: "(max-width: 800px) 100vw, 800px");
+
+// Full <picture> element with AVIF/WebP/JPEG sources
+var pictureTag = images.For("tattoo", "img_01JKABC")
+    .Quality(85)
+    .ToPictureTag(alt: "Sunset tattoo", widths: [400, 800, 1200]);
+```
+
 ### Upload an image
 
 ```csharp
