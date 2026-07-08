@@ -7,7 +7,7 @@ namespace Pixault.Client;
 /// <summary>
 /// HTTP client for Pixault upload and management API operations.
 /// </summary>
-public sealed class PixaultUploadClient
+public sealed class PixaultUploadClient : IPixaultUploadClient
 {
     private readonly HttpClient _http;
     private readonly PixaultOptions _options;

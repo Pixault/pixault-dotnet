@@ -42,6 +42,13 @@ public static class PixaultServiceExtensions
                 client.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
         });
 
+        // Expose the interfaces, forwarding to the concrete HTTP clients by default. This is the
+        // seam that lets an in-process host (e.g. the Pixault dashboard) override IPixault*Client
+        // with a direct-service implementation while external consumers keep the HTTP transport.
+        // The concrete classes stay registered so existing code that injects them still resolves.
+        services.AddTransient<IPixaultUploadClient>(sp => sp.GetRequiredService<PixaultUploadClient>());
+        services.AddTransient<IPixaultAdminClient>(sp => sp.GetRequiredService<PixaultAdminClient>());
+
         return services;
     }
 }

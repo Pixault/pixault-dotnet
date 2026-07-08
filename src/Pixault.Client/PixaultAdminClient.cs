@@ -7,7 +7,7 @@ namespace Pixault.Client;
 /// HTTP client for Pixault admin/management API operations.
 /// Used by the dashboard components to list, inspect, and manage images and transforms.
 /// </summary>
-public sealed class PixaultAdminClient
+public sealed class PixaultAdminClient : IPixaultAdminClient
 {
     private readonly HttpClient _http;
     private readonly PixaultOptions _options;
