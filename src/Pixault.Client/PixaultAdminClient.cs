@@ -243,6 +243,7 @@ public sealed class ImageMetadataDto
     public string ImageId { get; set; } = "";
     public string ProjectId { get; set; } = "";
     public string OriginalFileName { get; set; } = "";
+    public string? PublicId { get; set; }
     public DateTimeOffset UploadedAt { get; set; }
     public string ContentType { get; set; } = "";
     public long SizeBytes { get; set; }
