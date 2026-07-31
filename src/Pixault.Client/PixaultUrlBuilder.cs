@@ -6,34 +6,34 @@ namespace Pixault.Client;
 /// <example>
 /// <code>
 /// // Named transform (watermark locked server-side):
-/// var url = images.For("tattoo", "img_01JKABC")
+/// var url = images.For("tattoo", "sunset-beach")
 ///     .Transform("gallery")
 ///     .Width(800)
 ///     .Build();
-/// // => "https://img.pixault.io/tattoo/img_01JKABC/t_gallery,w_800.webp"
+/// // => "https://img.pixault.io/tattoo/t_gallery,w_800/sunset-beach.auto"
 ///
 /// // Direct parameters (when allowed by project config):
-/// var url = images.For("tattoo", "img_01JKABC")
+/// var url = images.For("tattoo", "sunset-beach")
 ///     .Width(800)
 ///     .Quality(85)
 ///     .Build();
-/// // => "https://img.pixault.io/tattoo/img_01JKABC/w_800,q_85.webp"
+/// // => "https://img.pixault.io/tattoo/w_800,q_85/sunset-beach.auto"
 /// </code>
 /// </example>
 public sealed class PixaultUrlBuilder
 {
     private readonly string _baseUrl;
     private readonly string _project;
-    private readonly string _imageId;
+    private readonly string _publicId;
     private readonly List<string> _params = [];
-    private string _format = "webp";
+    private string _format = "auto";
     private string? _transform;
 
-    public PixaultUrlBuilder(string baseUrl, string project, string imageId)
+    public PixaultUrlBuilder(string baseUrl, string project, string publicId)
     {
         _baseUrl = baseUrl.TrimEnd('/');
         _project = project;
-        _imageId = imageId;
+        _publicId = publicId;
     }
 
     /// <summary>
@@ -104,10 +104,11 @@ public sealed class PixaultUrlBuilder
 
         allParams.AddRange(_params);
 
-        if (allParams.Count == 0)
-            return $"{_baseUrl}/{_project}/{_imageId}/original.{_format}";
-
-        return $"{_baseUrl}/{_project}/{_imageId}/{string.Join(",", allParams)}.{_format}";
+        // Cloudinary order: transforms are a middle segment; the publicId + ext is the last
+        // segment (the human filename). No transform → clean 2-segment URL.
+        return allParams.Count == 0
+            ? $"{_baseUrl}/{_project}/{_publicId}.{_format}"
+            : $"{_baseUrl}/{_project}/{string.Join(",", allParams)}/{_publicId}.{_format}";
     }
 
     /// <summary>
@@ -119,12 +120,11 @@ public sealed class PixaultUrlBuilder
     {
         widths ??= [400, 800, 1200];
         var maxWidth = widths.Max();
-        var transformParams = BuildTransformParams();
 
         var srcset = string.Join(", ",
             widths.OrderBy(w => w).Select(w =>
-                $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{w}.auto {w}w"));
-        var src = $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{maxWidth}.auto";
+                $"{_baseUrl}/{_project}/{TransformSegment(w)}/{_publicId}.auto {w}w"));
+        var src = $"{_baseUrl}/{_project}/{TransformSegment(maxWidth)}/{_publicId}.auto";
         var cls = cssClass is not null ? $" class=\"{Encode(cssClass)}\"" : "";
 
         return $"<img src=\"{src}\" srcset=\"{srcset}\" sizes=\"{Encode(sizes)}\" alt=\"{Encode(alt)}\" width=\"{maxWidth}\" loading=\"{loading}\" decoding=\"async\"{cls}>";
@@ -139,18 +139,17 @@ public sealed class PixaultUrlBuilder
     {
         widths ??= [400, 800, 1200];
         var maxWidth = widths.Max();
-        var transformParams = BuildTransformParams();
         var cls = cssClass is not null ? $" class=\"{Encode(cssClass)}\"" : "";
         var encodedSizes = Encode(sizes);
         var encodedAlt = Encode(alt);
 
         var avifSrcset = string.Join(", ",
             widths.OrderBy(w => w).Select(w =>
-                $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{w}.avif {w}w"));
+                $"{_baseUrl}/{_project}/{TransformSegment(w)}/{_publicId}.avif {w}w"));
         var webpSrcset = string.Join(", ",
             widths.OrderBy(w => w).Select(w =>
-                $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{w}.webp {w}w"));
-        var fallback = $"{_baseUrl}/{_project}/{_imageId}/{transformParams}w_{maxWidth}.jpg";
+                $"{_baseUrl}/{_project}/{TransformSegment(w)}/{_publicId}.webp {w}w"));
+        var fallback = $"{_baseUrl}/{_project}/{TransformSegment(maxWidth)}/{_publicId}.jpg";
 
         return $"<picture>" +
             $"<source srcset=\"{avifSrcset}\" type=\"image/avif\" sizes=\"{encodedSizes}\">" +
@@ -159,12 +158,13 @@ public sealed class PixaultUrlBuilder
             $"</picture>";
     }
 
-    private string BuildTransformParams()
+    private string TransformSegment(int extraWidth)
     {
         var parts = new List<string>();
         if (_transform is not null) parts.Add($"t_{_transform}");
         parts.AddRange(_params);
-        return parts.Count > 0 ? string.Join(",", parts) + "," : "";
+        parts.Add($"w_{extraWidth}");
+        return string.Join(",", parts);
     }
 
     private static string Encode(string value) =>

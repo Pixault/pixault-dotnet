@@ -21,20 +21,20 @@ public sealed class PixaultImageService
     /// Creates a URL builder for the specified project and image.
     /// </summary>
     /// <param name="project">The project identifier (e.g., "barber", "tattoo")</param>
-    /// <param name="imageId">The unique image identifier</param>
-    public PixaultUrlBuilder For(string project, string imageId)
-        => new(_publicUrl, project, imageId);
+    /// <param name="publicId">The unique image identifier</param>
+    public PixaultUrlBuilder For(string project, string publicId)
+        => new(_publicUrl, project, publicId);
 
     /// <summary>
     /// Creates a URL builder using the default project.
     /// </summary>
-    /// <param name="imageId">The unique image identifier</param>
-    public PixaultUrlBuilder For(string imageId)
+    /// <param name="publicId">The unique image identifier</param>
+    public PixaultUrlBuilder For(string publicId)
     {
         if (string.IsNullOrEmpty(_options.DefaultProject))
-            throw new InvalidOperationException("DefaultProject must be configured when using For(imageId) without a project parameter.");
+            throw new InvalidOperationException("DefaultProject must be configured when using For(publicId) without a project parameter.");
 
-        return new PixaultUrlBuilder(_publicUrl, _options.DefaultProject, imageId);
+        return new PixaultUrlBuilder(_publicUrl, _options.DefaultProject, publicId);
     }
 
     /// <summary>
