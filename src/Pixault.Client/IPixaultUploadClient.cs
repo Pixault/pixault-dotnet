@@ -12,7 +12,8 @@ public interface IPixaultUploadClient
     /// <summary>Uploads an image to Pixault and returns the new image ID.</summary>
     Task<UploadResponse> UploadAsync(
         string project, string fileName, Stream data, string contentType,
-        string? folder = null, CancellationToken ct = default);
+        string? folder = null, string? name = null, bool overwrite = false,
+        CancellationToken ct = default);
 
     /// <summary>Deletes an image from Pixault.</summary>
     Task DeleteAsync(string project, string imageId, CancellationToken ct = default);

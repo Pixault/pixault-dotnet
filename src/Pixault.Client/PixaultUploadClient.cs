@@ -29,7 +29,8 @@ public sealed class PixaultUploadClient : IPixaultUploadClient
     /// <returns>The upload response containing the new image ID</returns>
     public async Task<UploadResponse> UploadAsync(
         string project, string fileName, Stream data, string contentType,
-        string? folder = null, CancellationToken ct = default)
+        string? folder = null, string? name = null, bool overwrite = false,
+        CancellationToken ct = default)
     {
         using var content = new MultipartFormDataContent();
         var streamContent = new StreamContent(data);
@@ -38,6 +39,11 @@ public sealed class PixaultUploadClient : IPixaultUploadClient
 
         if (!string.IsNullOrWhiteSpace(folder))
             content.Add(new StringContent(folder), "folder");
+
+        if (!string.IsNullOrWhiteSpace(name))
+            content.Add(new StringContent(name), "name");
+        if (overwrite)
+            content.Add(new StringContent("true"), "overwrite");
 
         var response = await _http.PostAsync($"/api/{project}/upload", content, ct);
         response.EnsureSuccessStatusCode();
@@ -62,4 +68,5 @@ public sealed class UploadResponse
     public string Url { get; set; } = "";
     public bool IsEps { get; set; }
     public Guid? ProcessingJobId { get; set; }
+    public string? PublicId { get; set; }
 }
