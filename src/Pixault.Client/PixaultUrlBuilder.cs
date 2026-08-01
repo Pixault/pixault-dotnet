@@ -93,6 +93,16 @@ public sealed class PixaultUrlBuilder
     }
 
     /// <summary>
+    /// True when <paramref name="s"/> is a legacy id-shaped identifier (img_/vid_/eps_ prefix)
+    /// rather than a human-readable slug/publicId. Must match the server's
+    /// <c>DeliveryGrammar.IsLegacyId</c> exactly.
+    /// </summary>
+    private static bool IsLegacyId(string s) =>
+        s.StartsWith("img_", System.StringComparison.Ordinal)
+        || s.StartsWith("vid_", System.StringComparison.Ordinal)
+        || s.StartsWith("eps_", System.StringComparison.Ordinal);
+
+    /// <summary>
     /// Builds the final CDN URL for this image transformation.
     /// </summary>
     public string Build()
@@ -103,6 +113,14 @@ public sealed class PixaultUrlBuilder
             allParams.Add($"t_{_transform}");
 
         allParams.AddRange(_params);
+
+        if (IsLegacyId(_publicId))
+        {
+            // Legacy grammar: id first, transform (or "original") last.
+            return allParams.Count == 0
+                ? $"{_baseUrl}/{_project}/{_publicId}/original.{_format}"
+                : $"{_baseUrl}/{_project}/{_publicId}/{string.Join(",", allParams)}.{_format}";
+        }
 
         // Cloudinary order: transforms are a middle segment; the publicId + ext is the last
         // segment (the human filename). No transform → clean 2-segment URL.
@@ -122,9 +140,8 @@ public sealed class PixaultUrlBuilder
         var maxWidth = widths.Max();
 
         var srcset = string.Join(", ",
-            widths.OrderBy(w => w).Select(w =>
-                $"{_baseUrl}/{_project}/{TransformSegment(w)}/{_publicId}.auto {w}w"));
-        var src = $"{_baseUrl}/{_project}/{TransformSegment(maxWidth)}/{_publicId}.auto";
+            widths.OrderBy(w => w).Select(w => $"{VariantUrl(w, "auto")} {w}w"));
+        var src = VariantUrl(maxWidth, "auto");
         var cls = cssClass is not null ? $" class=\"{Encode(cssClass)}\"" : "";
 
         return $"<img src=\"{src}\" srcset=\"{srcset}\" sizes=\"{Encode(sizes)}\" alt=\"{Encode(alt)}\" width=\"{maxWidth}\" loading=\"{loading}\" decoding=\"async\"{cls}>";
@@ -144,12 +161,10 @@ public sealed class PixaultUrlBuilder
         var encodedAlt = Encode(alt);
 
         var avifSrcset = string.Join(", ",
-            widths.OrderBy(w => w).Select(w =>
-                $"{_baseUrl}/{_project}/{TransformSegment(w)}/{_publicId}.avif {w}w"));
+            widths.OrderBy(w => w).Select(w => $"{VariantUrl(w, "avif")} {w}w"));
         var webpSrcset = string.Join(", ",
-            widths.OrderBy(w => w).Select(w =>
-                $"{_baseUrl}/{_project}/{TransformSegment(w)}/{_publicId}.webp {w}w"));
-        var fallback = $"{_baseUrl}/{_project}/{TransformSegment(maxWidth)}/{_publicId}.jpg";
+            widths.OrderBy(w => w).Select(w => $"{VariantUrl(w, "webp")} {w}w"));
+        var fallback = VariantUrl(maxWidth, "jpg");
 
         return $"<picture>" +
             $"<source srcset=\"{avifSrcset}\" type=\"image/avif\" sizes=\"{encodedSizes}\">" +
@@ -166,6 +181,15 @@ public sealed class PixaultUrlBuilder
         parts.Add($"w_{extraWidth}");
         return string.Join(",", parts);
     }
+
+    /// <summary>
+    /// Builds one width/format variant URL, branching on legacy vs. publicId grammar
+    /// the same way <see cref="Build"/> does.
+    /// </summary>
+    private string VariantUrl(int width, string ext) =>
+        IsLegacyId(_publicId)
+            ? $"{_baseUrl}/{_project}/{_publicId}/{TransformSegment(width)}.{ext}"
+            : $"{_baseUrl}/{_project}/{TransformSegment(width)}/{_publicId}.{ext}";
 
     private static string Encode(string value) =>
         System.Net.WebUtility.HtmlEncode(value);
