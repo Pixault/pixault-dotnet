@@ -1,12 +1,17 @@
 name: Publish to NuGet
 
+# Tag-driven release, matching pixault-cli / pixault-blazor / pixault-mcp. Bump <Version> +
+# RELEASES.md, commit, push, then push a v<version> tag — CI verifies the tag matches the csproj
+# version, packs with release notes from RELEASES.md, and publishes to nuget.org via Trusted
+# Publishing (OIDC). No API key.
+#
+# This repo previously published on any push to main touching src/**, with no tag check and no
+# release notes. That is why it carried no tags while 1.0.0-1.6.0 were all on nuget.org, and why
+# pixault/scripts/release.sh (which pushes a tag and then watches for the tag's run) could not
+# find a run here.
 on:
   push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'Directory.Packages.props'
-
+    tags: ['v*']
   workflow_dispatch:
 
 jobs:
@@ -25,35 +30,80 @@ jobs:
           dotnet-version: '10.0.x'
           dotnet-quality: 'preview'
 
-      - name: Restore
-        run: dotnet restore src/Pixault.Client/Pixault.Client.csproj
-
-      - name: Build
-        run: dotnet build src/Pixault.Client/Pixault.Client.csproj -c Release --no-restore
-
       - name: Get version from csproj
         id: version
         run: |
           VERSION=$(grep -oP '<Version>\K[^<]+' src/Pixault.Client/Pixault.Client.csproj)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Package version: $VERSION"
+          echo "csproj version: $VERSION"
+
+      - name: Verify tag matches csproj version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          CSPROJ_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$TAG" != "$CSPROJ_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match csproj <Version> $CSPROJ_VERSION. Bump the csproj (and RELEASES.md) to match the tag."
+            exit 1
+          fi
+          echo "Tag v$TAG matches the csproj version."
+
+      - name: Extract release notes from RELEASES.md
+        id: notes
+        env:
+          CSPROJ_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          V="$CSPROJ_VERSION"
+          NOTES=$(awk -v v="$V" '
+            $0 ~ "^## +"v"([^0-9]|$)" {grab=1; next}
+            grab && /^## / {grab=0}
+            grab {print}
+          ' RELEASES.md 2>/dev/null | sed '/^[[:space:]]*$/d')
+          [ -z "$NOTES" ] && NOTES="Release $V"
+          {
+            echo "notes<<__NOTES_EOF__"
+            echo "$NOTES"
+            echo "__NOTES_EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore
+        run: dotnet restore src/Pixault.Client/Pixault.Client.csproj --source https://api.nuget.org/v3/index.json
+
+      - name: Build
+        run: dotnet build src/Pixault.Client/Pixault.Client.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test test/Pixault.Client.Tests/Pixault.Client.Tests.csproj -c Release --no-build
 
       - name: Check if version exists on NuGet
         id: check
+        env:
+          CSPROJ_VERSION: ${{ steps.version.outputs.version }}
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://api.nuget.org/v3-flatcontainer/pixault.client/${{ steps.version.outputs.version }}/pixault.client.nuspec")
+            "https://api.nuget.org/v3-flatcontainer/pixault.client/$CSPROJ_VERSION/pixault.client.nuspec")
           if [ "$STATUS" = "200" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Version ${{ steps.version.outputs.version }} already exists — skipping publish"
+            echo "Version $CSPROJ_VERSION already exists — skipping publish"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Version ${{ steps.version.outputs.version }} is new — will publish"
+            echo "Version $CSPROJ_VERSION is new — will publish"
           fi
 
+      # The notes reach MSBuild through an env var rather than being pasted into the command
+      # line, and ',' / ';' are escaped. Interpolating them directly — as the other three repos
+      # still do — breaks on ordinary prose: a backtick becomes command substitution, and
+      # everything after the first comma is read as a separate MSBuild switch. That failed the
+      # Pixault.Cli 0.5.5 and Pixault.Blazor 1.7.1 publishes on 2026-09-09.
       - name: Pack
         if: steps.check.outputs.exists == 'false'
-        run: dotnet pack src/Pixault.Client/Pixault.Client.csproj -c Release --no-build -o ./nupkg
+        env:
+          NOTES: ${{ steps.notes.outputs.notes }}
+        run: |
+          ESCAPED=$(printf '%s' "$NOTES" | sed 's/%/%25/g; s/,/%2C/g; s/;/%3B/g')
+          dotnet pack src/Pixault.Client/Pixault.Client.csproj -c Release --no-build -o ./nupkg \
+            -p:PackageReleaseNotes="$ESCAPED"
 
       - name: Login to NuGet via trusted publisher
         id: nuget-login
