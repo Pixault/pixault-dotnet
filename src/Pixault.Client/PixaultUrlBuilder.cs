@@ -97,10 +97,19 @@ public sealed class PixaultUrlBuilder
     /// rather than a human-readable slug/publicId. Must match the server's
     /// <c>DeliveryGrammar.IsLegacyId</c> exactly.
     /// </summary>
-    private static bool IsLegacyId(string s) =>
-        s.StartsWith("img_", System.StringComparison.Ordinal)
-        || s.StartsWith("vid_", System.StringComparison.Ordinal)
-        || s.StartsWith("eps_", System.StringComparison.Ordinal);
+    /// <remarks>
+    /// Null and empty are not legacy ids. The parameter is widened to <c>string?</c> deliberately:
+    /// callers reach this from data, where a record with no image yields a null id, and a
+    /// non-nullable <c>string</c> is a compile-time hint a nullable-oblivious caller never sees.
+    /// Without this guard a null threw NullReferenceException out of <see cref="Build"/> — on
+    /// 2026-08-09 one such row took all 309 barber.shop profile pages down. A URL builder should
+    /// not throw over missing data.
+    /// </remarks>
+    private static bool IsLegacyId(string? s) =>
+        !string.IsNullOrEmpty(s)
+        && (s.StartsWith("img_", System.StringComparison.Ordinal)
+            || s.StartsWith("vid_", System.StringComparison.Ordinal)
+            || s.StartsWith("eps_", System.StringComparison.Ordinal));
 
     /// <summary>
     /// Builds the final CDN URL for this image transformation.
