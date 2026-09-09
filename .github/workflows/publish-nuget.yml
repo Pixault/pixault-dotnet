@@ -73,8 +73,14 @@ jobs:
       - name: Build
         run: dotnet build src/Pixault.Client/Pixault.Client.csproj -c Release --no-restore
 
+      # No --no-build here, deliberately. The Build step above builds only the src project, so
+      # `dotnet test --no-build` finds no test assembly, prints nothing and exits 0 — a gate that
+      # passes without running anything. Verified: it returned in 0.7s with no output on the
+      # v1.6.1 run. Letting dotnet build the test project costs seconds and actually gates.
       - name: Test
-        run: dotnet test test/Pixault.Client.Tests/Pixault.Client.Tests.csproj -c Release --no-build
+        run: |
+          dotnet test test/Pixault.Client.Tests/Pixault.Client.Tests.csproj -c Release \
+            --logger "console;verbosity=normal"
 
       - name: Check if version exists on NuGet
         id: check
